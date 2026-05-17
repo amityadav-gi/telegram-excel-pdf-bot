@@ -14,44 +14,74 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    document = update.message.document
+    try:
 
-    if not document.file_name.endswith((".xlsx", ".xls")):
-        await update.message.reply_text("Please send Excel file.")
-        return
+        document = update.message.document
 
-    file = await context.bot.get_file(document.file_id)
+        print("Received file:", document.file_name)
 
-    input_path = os.path.join(DOWNLOAD_DIR, document.file_name)
+        if not document.file_name.endswith((".xlsx", ".xls")):
+            await update.message.reply_text("Please send Excel file only.")
+            return
 
-    await file.download_to_drive(input_path)
+        file = await context.bot.get_file(document.file_id)
 
-    await update.message.reply_text("Converting to PDF...")
+        input_path = os.path.join(DOWNLOAD_DIR, document.file_name)
 
-    subprocess.run([
-        "libreoffice",
-        "--headless",
-        "--convert-to",
-        "pdf",
-        "--outdir",
-        OUTPUT_DIR,
-        input_path
-    ])
+        await file.download_to_drive(input_path)
 
-    pdf_name = os.path.splitext(document.file_name)[0] + ".pdf"
-    pdf_path = os.path.join(OUTPUT_DIR, pdf_name)
+        print("Downloaded:", input_path)
 
-    if os.path.exists(pdf_path):
+        await update.message.reply_text("Converting to PDF...")
 
-        await update.message.reply_document(
-            document=open(pdf_path, "rb")
+        result = subprocess.run(
+            [
+                "libreoffice",
+                "--headless",
+                "--convert-to",
+                "pdf",
+                "--outdir",
+                OUTPUT_DIR,
+                input_path
+            ],
+            capture_output=True,
+            text=True
         )
 
-        os.remove(pdf_path)
-        os.remove(input_path)
+        print("LibreOffice stdout:", result.stdout)
+        print("LibreOffice stderr:", result.stderr)
 
-    else:
-        await update.message.reply_text("Conversion failed.")
+        pdf_name = os.path.splitext(document.file_name)[0] + ".pdf"
+        pdf_path = os.path.join(OUTPUT_DIR, pdf_name)
+
+        print("Looking for PDF:", pdf_path)
+
+        if os.path.exists(pdf_path):
+
+            print("PDF created successfully")
+
+            await update.message.reply_document(
+                document=open(pdf_path, "rb")
+            )
+
+            os.remove(pdf_path)
+            os.remove(input_path)
+
+        else:
+
+            print("PDF NOT created")
+
+            await update.message.reply_text(
+                "Conversion failed."
+            )
+
+    except Exception as e:
+
+        print("ERROR:", str(e))
+
+        await update.message.reply_text(
+            f"Error: {str(e)}"
+        )
 
 
 def main():
