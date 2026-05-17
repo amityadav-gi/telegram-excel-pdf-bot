@@ -54,12 +54,18 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Conversion failed.")
 
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
+def main():
 
-app.add_handler(
-    MessageHandler(filters.Document.ALL, handle_file)
-)
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-print("Bot running...")
+    app.add_handler(
+        MessageHandler(filters.Document.ALL, handle_file)
+    )
 
-app.run_polling()
+    print("Bot running...")
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
